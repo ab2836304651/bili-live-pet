@@ -1,0 +1,20 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+logs/
+
+# 构建产物
+build/
+build-tmp/
+dist/
+release/
+*.spec
+
+# 敏感配置（含真实 API Key / B站登录态，绝不入库）
+config/config.yaml
+config/prompt.md
+
+# 本地杂项
+docs/bunny_*.png
+.claude/

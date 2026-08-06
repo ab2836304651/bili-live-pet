@@ -1,0 +1,41 @@
+# 复制此文件为 config.yaml 并填写你的配置
+# 注意：config.yaml 已在 .gitignore 中，不会提交到仓库
+room_id: 0
+danmaku:
+  backend: community
+  open_live:
+    app_id: ''
+    access_key_id: ''
+    access_key_secret: ''
+    code: ''
+  community:
+    sessdata: ''
+ai:
+  api_key: ''
+  base_url: https://api.deepseek.com
+  model: deepseek-chat
+  temperature: 0.9
+  max_tokens: 120
+  reply_mode: all
+  trigger_words:
+  - 你好
+  - 小猫
+  - 团子
+  - hello
+  - hi
+  reply_probability: 0.3
+  cooldown_seconds: 8
+  max_history: 6
+  reply_to_danmaku: true
+  reply_to_gift: true
+  reply_to_super_chat: true
+  reply_to_guard: true
+  reply_to_enter: true
+  enter_cooldown_seconds: 10
+pet:
+  size: 220
+  gif: ''
+  talk_gif: ''
+  position:
+    x: null
+    y: null
