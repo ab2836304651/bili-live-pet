@@ -183,3 +183,9 @@ bili-live-pet/
 
 > 免责声明：`community` 后端使用非官方接口，2026 年起 B 站已对相关开源项目
 > 发出律师函并封禁匿名访问，仅供技术研究；正式直播请使用官方 `open_live` 后端。
+
+---
+
+## 📄 License
+
+[MIT License](LICENSE) © 2026 [ab2836304651](https://github.com/ab2836304651)
