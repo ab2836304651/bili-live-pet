@@ -40,7 +40,7 @@
 
 **开发者（源码版）：**
 ```bash
-git clone https://github.com/<你的用户名>/bili-live-pet.git
+git clone https://github.com/ab2836304651/bili-live-pet.git
 cd bili-live-pet
 python -m venv .venv
 .venv/Scripts/pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
