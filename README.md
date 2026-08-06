@@ -40,10 +40,15 @@
 
 **开发者（源码版）：**
 ```bash
+git clone https://github.com/<你的用户名>/bili-live-pet.git
+cd bili-live-pet
 python -m venv .venv
 .venv/Scripts/pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+copy config\config.example.yaml config\config.yaml   # 复制配置模板并填写
 ./start.sh            # Windows 双击 start.bat
 ```
+
+> 仓库不含任何凭据：`config/config.yaml` 已被 `.gitignore` 排除，模板见 `config/config.example.yaml`。
 
 **可选自检：**
 ```bash
