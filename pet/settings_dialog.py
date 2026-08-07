@@ -52,6 +52,7 @@ class SettingsDialog(QDialog):
         tabs = QTabWidget(self)
         tabs.addTab(self._build_live_tab(), "直播间")
         tabs.addTab(self._build_ai_tab(), "AI 回复")
+        tabs.addTab(self._build_appearance_tab(), "外观")
         tabs.addTab(self._build_prompt_tab(prompt_text), "提示词")
 
         btn_save = QPushButton("保存", self)
@@ -139,6 +140,15 @@ class SettingsDialog(QDialog):
         self._enter_cooldown_spin.setRange(5, 600)
         self._enter_cooldown_spin.setValue(int(ai.get("enter_cooldown_seconds") or 20))
 
+        self._reply_danmaku = QCheckBox("弹幕", self)
+        self._reply_danmaku.setChecked(bool(ai.get("reply_to_danmaku", True)))
+        self._reply_gift = QCheckBox("礼物", self)
+        self._reply_gift.setChecked(bool(ai.get("reply_to_gift", True)))
+        self._reply_sc = QCheckBox("醒目留言 SC", self)
+        self._reply_sc.setChecked(bool(ai.get("reply_to_super_chat", True)))
+        self._reply_guard = QCheckBox("大航海", self)
+        self._reply_guard.setChecked(bool(ai.get("reply_to_guard", True)))
+
         form = QFormLayout()
         form.addRow("API Key", self._api_edit)
         form.addRow("接口地址", self._base_edit)
@@ -150,12 +160,53 @@ class SettingsDialog(QDialog):
         form.addRow("", self._enter_check)
         form.addRow("欢迎冷却（秒）", self._enter_cooldown_spin)
 
+        reply_row = QHBoxLayout()
+        reply_row.addWidget(self._reply_danmaku)
+        reply_row.addWidget(self._reply_gift)
+        reply_row.addWidget(self._reply_sc)
+        reply_row.addWidget(self._reply_guard)
+        reply_row.addStretch(1)
+        form.addRow("回复这些事件", reply_row)
+
         hint = QLabel("API Key 在 https://platform.deepseek.com 申请（需充值）。\n"
                       "回复模式：all=每条弹幕都回；trigger=只回含触发词的；probability=按概率回。")
         hint.setWordWrap(True)
         hint.setStyleSheet("color: #888; font-size: 12px;")
 
         box = QGroupBox("AI 配置（DeepSeek）", self)
+        box.setLayout(form)
+        layout = QVBoxLayout()
+        layout.addWidget(box)
+        layout.addWidget(hint)
+        layout.addStretch(1)
+        w = QWidget(self)
+        w.setLayout(layout)
+        return w
+
+    # ---------- 外观 Tab ----------
+
+    def _build_appearance_tab(self) -> QWidget:
+        pet = self._config.get("pet", {}) or {}
+        self._size_spin = QSpinBox(self)
+        self._size_spin.setRange(80, 400)
+        self._size_spin.setValue(int(pet.get("size") or 220))
+        self._size_spin.setSuffix(" px")
+
+        self._font_spin = QSpinBox(self)
+        self._font_spin.setRange(10, 28)
+        self._font_spin.setValue(int(pet.get("bubble_font_size") or 14))
+        self._font_spin.setSuffix(" px")
+
+        form = QFormLayout()
+        form.addRow("兔团子大小", self._size_spin)
+        form.addRow("气泡字体大小", self._font_spin)
+
+        hint = QLabel("兔团子大小：桌宠本体的显示尺寸。\n"
+                      "气泡字体大小：回复气泡里文字的大小（文字太大可能被气泡宽度截断）。")
+        hint.setWordWrap(True)
+        hint.setStyleSheet("color: #888; font-size: 12px;")
+
+        box = QGroupBox("外观设置", self)
         box.setLayout(form)
         layout = QVBoxLayout()
         layout.addWidget(box)
@@ -211,7 +262,16 @@ class SettingsDialog(QDialog):
         ai["cooldown_seconds"] = self._cooldown_spin.value()
         ai["reply_to_enter"] = self._enter_check.isChecked()
         ai["enter_cooldown_seconds"] = self._enter_cooldown_spin.value()
+        ai["reply_to_danmaku"] = self._reply_danmaku.isChecked()
+        ai["reply_to_gift"] = self._reply_gift.isChecked()
+        ai["reply_to_super_chat"] = self._reply_sc.isChecked()
+        ai["reply_to_guard"] = self._reply_guard.isChecked()
         new_cfg["ai"] = ai
+
+        pet = dict(new_cfg.get("pet", {}) or {})
+        pet["size"] = self._size_spin.value()
+        pet["bubble_font_size"] = self._font_spin.value()
+        new_cfg["pet"] = pet
 
         if self._on_saved:
             self._on_saved(new_cfg, self._prompt_edit.toPlainText())

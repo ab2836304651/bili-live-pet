@@ -80,7 +80,7 @@ FALLBACK_CONFIG = {
         "reply_to_enter": False,
         "enter_cooldown_seconds": 20,
     },
-    "pet": {"size": 220, "gif": "", "talk_gif": "", "position": {"x": None, "y": None}},
+    "pet": {"size": 220, "bubble_font_size": 14, "gif": "", "talk_gif": "", "position": {"x": None, "y": None}},
 }
 
 
@@ -165,7 +165,7 @@ def main() -> int:
         on_test_reply=controller.test_reply,
         on_set_room=controller.set_room,
         on_quit=lambda: (controller.stop(), app.quit()),
-        on_open_settings=lambda: open_settings(app, controller),
+        on_open_settings=lambda: open_settings(app, controller, window),
     )
 
     # 信号接线（都在 GUI 线程执行槽）
@@ -179,7 +179,7 @@ def main() -> int:
     # 首启引导：未配置房间号或 API Key 时自动弹设置面板
     if not (int(cfg.get("room_id") or 0) and (cfg.get("ai") or {}).get("api_key")):
         QApplication.processEvents()
-        open_settings(app, controller, force=True)
+        open_settings(app, controller, window, force=True)
 
     try:
         return app.exec()
@@ -187,7 +187,7 @@ def main() -> int:
         controller.stop()
 
 
-def open_settings(app: QApplication, controller: PetController, force: bool = False) -> None:
+def open_settings(app: QApplication, controller: PetController, window: PetWindow, force: bool = False) -> None:
     """弹出设置面板；保存后热应用配置。"""
     current = controller.current_config()
 
@@ -195,6 +195,7 @@ def open_settings(app: QApplication, controller: PetController, force: bool = Fa
         save_config(new_cfg)
         save_prompt(prompt)
         controller.apply_config(new_cfg)
+        window.apply_appearance(new_cfg.get("pet", {}) or {})
         print("[设置] 已保存并生效", flush=True)
 
     dlg = SettingsDialog(

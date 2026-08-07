@@ -17,24 +17,33 @@ from pet.sprite import SpriteRenderer
 class SpeechBubble(QLabel):
     """带小尾巴的圆角气泡。"""
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: Optional[QWidget] = None, font_size: int = 14):
         super().__init__(parent)
         self._tail = True
+        self._font_size = font_size
+        self._apply_style()
+        self.setWordWrap(True)
+        self.setMaximumWidth(240)
+        self.hide()
+
+    def set_font_size(self, size: int) -> None:
+        """热更新气泡字体大小（设置面板保存后调用）。"""
+        self._font_size = size
+        self._apply_style()
+
+    def _apply_style(self) -> None:
         self.setStyleSheet(
-            """
-            QLabel {
+            f"""
+            QLabel {{
                 background: rgba(255, 255, 255, 235);
                 color: #4A3B2A;
                 border: 2px solid #E8A96E;
                 border-radius: 12px;
                 padding: 8px 12px;
-                font-size: 14px;
-            }
+                font-size: {self._font_size}px;
+            }}
             """
         )
-        self.setWordWrap(True)
-        self.setMaximumWidth(240)
-        self.hide()
 
     def show_text(self, text: str, seconds: float = 6.0) -> None:
         self.setText(text)
@@ -94,7 +103,7 @@ class PetWindow(QWidget):
         self._renderer = SpriteRenderer(self._gif_path, self._talk_gif_path)
         self._talking = False
         self._drag_offset: Optional[QPoint] = None
-        self._bubble = SpeechBubble(self)
+        self._bubble = SpeechBubble(self, font_size=int(self._cfg.get("bubble_font_size") or 14))
 
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint
@@ -141,6 +150,14 @@ class PetWindow(QWidget):
             self._renderer.start_talk()
         else:
             self._renderer.stop_talk()
+
+    def apply_appearance(self, pet_cfg: dict) -> None:
+        """设置面板保存后热应用外观：兔团子大小 + 气泡字体大小。"""
+        self._cfg = pet_cfg or {}
+        size = int(self._cfg.get("size", 220))
+        self.setFixedSize(size, size + self.BUBBLE_ZONE)
+        self._bubble.set_font_size(int(self._cfg.get("bubble_font_size") or 14))
+        self._layout_bubble()
 
     def on_reply(self, payload) -> None:
         """收到 AI 回复（GUI 线程）：显示气泡并切到说话动画。"""

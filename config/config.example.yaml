@@ -34,6 +34,7 @@ ai:
   enter_cooldown_seconds: 10
 pet:
   size: 220
+  bubble_font_size: 14
   gif: ''
   talk_gif: ''
   position:
