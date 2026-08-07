@@ -190,16 +190,6 @@ bili-live-pet/
 
 ---
 
-## 🤝 贡献者
-
-- **[ab2836304651](https://github.com/ab2836304651)** — 项目创意、产品设计、测试与发布
-- **Claude (Anthropic)** — AI 协作者，架构设计与核心代码实现（[Claude Code](https://claude.com/code)）
-- **DeepSeek** — AI 引擎，驱动桌宠的实时回复（[DeepSeek API](https://platform.deepseek.com)）
-
-感谢 B 站直播平台提供的生态，以及 [Sashim](https://opengameart.org/) 的 CC0 兔兔素材。
-
----
-
 ## 📄 License
 
 [MIT License](LICENSE) © 2026 [ab2836304651](https://github.com/ab2836304651)
