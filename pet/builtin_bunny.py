@@ -89,10 +89,11 @@ def draw_bunny(
     hw, hh = 80.0 * face_scale, 78.0 * face_scale           # 头半宽/半高
     head_x, head_y = 110 - hw, 148 - hh + breathe * 0.6
 
-    # ---- 圆耳朵（跟随头沿） ----
+    # ---- 圆耳朵（位置跟随头沿，大小随脸缩小——否则小脸大圆耳像鼠鼠） ----
     ear_y = head_y - 8                                       # 耳朵在头上沿
-    _draw_round_ear(painter, 110 - 38 * face_scale, ear_y + breathe * 0.4, 27, ear_lift + ear_bob)
-    _draw_round_ear(painter, 110 + 38 * face_scale, ear_y + breathe * 0.4, 27, ear_lift - ear_bob)
+    ear_r = 27 * face_scale
+    _draw_round_ear(painter, 110 - 38 * face_scale, ear_y + breathe * 0.4, ear_r, ear_lift + ear_bob)
+    _draw_round_ear(painter, 110 + 38 * face_scale, ear_y + breathe * 0.4, ear_r, ear_lift - ear_bob)
 
     # ---- 兔头（大圆） ----
     head = QRectF(head_x, head_y, hw * 2, hh * 2)
