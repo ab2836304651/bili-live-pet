@@ -45,7 +45,15 @@ class SpriteRenderer:
             return self._talk_movie
         return self._movie
 
-    def draw(self, painter: QPainter, rect: QRect, talking: bool, t_ms: int) -> None:
+    def draw(
+        self,
+        painter: QPainter,
+        rect: QRect,
+        talking: bool,
+        t_ms: int,
+        face_scale: float = 1.0,
+        excited: float = 0.0,
+    ) -> None:
         movie = self._active_movie(talking)
         if movie is not None:
             pix = movie.currentPixmap()
@@ -60,7 +68,7 @@ class SpriteRenderer:
                 y = rect.y() + (rect.height() - scaled.height()) // 2
                 painter.drawPixmap(x, y, scaled)
             return
-        draw_bunny(painter, rect, talking, t_ms)
+        draw_bunny(painter, rect, talking, t_ms, face_scale, excited)
 
     def frame_changed(self, widget: QWidget) -> None:
         """GIF 模式下任一动画帧变化时通知刷新。"""

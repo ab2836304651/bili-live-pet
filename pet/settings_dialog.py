@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QSlider,
     QSpinBox,
     QTabWidget,
     QVBoxLayout,
@@ -197,12 +198,25 @@ class SettingsDialog(QDialog):
         self._font_spin.setValue(int(pet.get("bubble_font_size") or 14))
         self._font_spin.setSuffix(" px")
 
+        self._face_slider = QSlider(Qt.Orientation.Horizontal, self)
+        self._face_slider.setRange(80, 100)
+        self._face_slider.setSingleStep(5)
+        self._face_slider.setValue(int(round((float(pet.get("face_scale") or 1.0)) * 100)))
+        self._face_label = QLabel(f"{self._face_slider.value()}%", self)
+        self._face_slider.valueChanged.connect(lambda v: self._face_label.setText(f"{v}%"))
+        face_row = QHBoxLayout()
+        face_row.addWidget(self._face_slider, 1)
+        face_row.addWidget(self._face_label)
+
         form = QFormLayout()
         form.addRow("兔团子大小", self._size_spin)
         form.addRow("气泡字体大小", self._font_spin)
+        form.addRow("脸大小", face_row)
 
         hint = QLabel("兔团子大小：桌宠本体的显示尺寸。\n"
-                      "气泡字体大小：回复气泡里文字的大小（文字太大可能被气泡宽度截断）。")
+                      "气泡字体大小：回复气泡里文字的大小（文字太大可能被气泡宽度截断）。\n"
+                      "脸大小：把兔头缩小的比例，五官大小不变（Q版大头小脸萌感）。\n"
+                      "点击/双击兔团子有互动反应，右键可「摸摸头」～")
         hint.setWordWrap(True)
         hint.setStyleSheet("color: #888; font-size: 12px;")
 
@@ -271,6 +285,7 @@ class SettingsDialog(QDialog):
         pet = dict(new_cfg.get("pet", {}) or {})
         pet["size"] = self._size_spin.value()
         pet["bubble_font_size"] = self._font_spin.value()
+        pet["face_scale"] = self._face_slider.value() / 100.0
         new_cfg["pet"] = pet
 
         if self._on_saved:

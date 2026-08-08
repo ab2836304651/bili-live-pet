@@ -80,7 +80,7 @@ FALLBACK_CONFIG = {
         "reply_to_enter": False,
         "enter_cooldown_seconds": 20,
     },
-    "pet": {"size": 220, "bubble_font_size": 14, "gif": "", "talk_gif": "", "position": {"x": None, "y": None}},
+    "pet": {"size": 220, "bubble_font_size": 14, "face_scale": 1.0, "gif": "", "talk_gif": "", "position": {"x": None, "y": None}},
 }
 
 

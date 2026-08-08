@@ -4,6 +4,8 @@
 """
 from __future__ import annotations
 
+import math
+import random
 import time
 from typing import Callable, Optional
 
@@ -12,6 +14,34 @@ from PySide6.QtGui import QAction, QColor, QPainter, QPainterPath
 from PySide6.QtWidgets import QLabel, QMenu, QWidget
 
 from pet.sprite import SpriteRenderer
+
+# 互动文案池
+_CUTE_LINES = [  # 被戳/双击
+    "呜哇！戳我干嘛～",
+    "嘿嘿，好痒呀！",
+    "不许挠我耳朵！",
+    "啾？干嘛盯着我看",
+    "软乎乎～没错就是本兔！",
+    "再戳要生气了哦！",
+    "耳朵都被你戳立起来了！",
+    "嘿嘿嘿～",
+]
+_PET_LINES = [  # 摸摸头
+    "唔…好舒服～",
+    "再摸摸嘛，再摸摸嘛！",
+    "嘿嘿，被摸头会变聪明！",
+    "呼噜呼噜～",
+    "摸头的人运气都不会差！",
+    "舒服到想睡觉…不行，还要陪主人！",
+]
+_IDLE_LINES = [  # 空闲随机
+    "好无聊呀…主播什么时候开播～",
+    "没人陪，我自己蹦一蹦！",
+    "今天也是元气满满的一天！",
+    "咕噜噜～",
+    "要不要来戳戳我试试？",
+    "等一个夸我可爱的人！",
+]
 
 
 class SpeechBubble(QLabel):
@@ -102,7 +132,15 @@ class PetWindow(QWidget):
         self._talk_gif_path = self._cfg.get("talk_gif") or ""
         self._renderer = SpriteRenderer(self._gif_path, self._talk_gif_path)
         self._talking = False
+        self._face_scale = float(self._cfg.get("face_scale") or 1.0)
+        self._excited = 0.0  # 兴奋度 0~1（被戳/摸头时脸红竖耳，随时间消退）
         self._drag_offset: Optional[QPoint] = None
+        self._press_pos: Optional[QPoint] = None
+        self._last_click_at: Optional[float] = None
+        self._base_pos = QPoint()
+        self._bounce_t = 0.0
+        self._bounce_duration = 0.9
+        self._bounce_height = 62.0
         self._bubble = SpeechBubble(self, font_size=int(self._cfg.get("bubble_font_size") or 14))
 
         self.setWindowFlags(
@@ -116,8 +154,18 @@ class PetWindow(QWidget):
 
         # 动画帧定时器（内置猫用；GIF 模式由 QMovie 驱动）
         self._anim_timer = QTimer(self)
-        self._anim_timer.timeout.connect(self.update)
+        self._anim_timer.timeout.connect(self._tick_anim)
         self._anim_timer.start(66)  # ~15fps
+
+        # 蹦跳动画定时器（只在互动时运行）
+        self._bounce_timer = QTimer(self)
+        self._bounce_timer.timeout.connect(self._tick_bounce)
+        self._bounce_timer.setInterval(16)
+
+        # 空闲随机小动作（每 20~40s 一次）
+        self._idle_timer = QTimer(self)
+        self._idle_timer.timeout.connect(self._idle_action)
+        self._rearm_idle()
 
         if self._renderer.is_gif:
             self._renderer.frame_changed(self)
@@ -152,11 +200,12 @@ class PetWindow(QWidget):
             self._renderer.stop_talk()
 
     def apply_appearance(self, pet_cfg: dict) -> None:
-        """设置面板保存后热应用外观：兔团子大小 + 气泡字体大小。"""
+        """设置面板保存后热应用外观：兔团子大小 + 气泡字体大小 + 脸大小。"""
         self._cfg = pet_cfg or {}
         size = int(self._cfg.get("size", 220))
         self.setFixedSize(size, size + self.BUBBLE_ZONE)
         self._bubble.set_font_size(int(self._cfg.get("bubble_font_size") or 14))
+        self._face_scale = float(self._cfg.get("face_scale") or 1.0)
         self._layout_bubble()
 
     def on_reply(self, payload) -> None:
@@ -185,7 +234,11 @@ class PetWindow(QWidget):
         rect = self.rect().adjusted(
             4, self.BUBBLE_ZONE + 4, -4, -4
         )
-        self._renderer.draw(painter, rect, self._talking, int(time.monotonic() * 1000))
+        self._renderer.draw(
+            painter, rect, self._talking,
+            int(time.monotonic() * 1000),
+            self._face_scale, self._excited,
+        )
 
     def resizeEvent(self, event) -> None:  # noqa: N802
         super().resizeEvent(event)
@@ -195,13 +248,22 @@ class PetWindow(QWidget):
 
     def mousePressEvent(self, event) -> None:  # noqa: N802
         if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_offset = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            self._press_pos = event.globalPosition().toPoint()
+            self._drag_offset = self._press_pos - self.frameGeometry().topLeft()
 
     def mouseMoveEvent(self, event) -> None:  # noqa: N802
         if self._drag_offset is not None and event.buttons() & Qt.MouseButton.LeftButton:
             self.move(event.globalPosition().toPoint() - self._drag_offset)
 
     def mouseReleaseEvent(self, event) -> None:  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton and self._drag_offset is not None:
+            # 按下→松开移动不超过 5px 视为点击（否则是拖动，不触发互动）
+            moved = (event.globalPosition().toPoint() - self._press_pos).manhattanLength()
+            if moved <= 5:
+                now = time.monotonic()
+                is_double = self._last_click_at is not None and now - self._last_click_at < 0.35
+                self._last_click_at = None if is_double else now
+                self._on_click(is_double)
         self._drag_offset = None
 
     def contextMenuEvent(self, event) -> None:  # noqa: N802
@@ -215,6 +277,10 @@ class PetWindow(QWidget):
         test_action = QAction("🐾 测试回复一句", self)
         test_action.triggered.connect(self._on_test_reply or (lambda: None))
         self._menu.addAction(test_action)
+
+        pet_action = QAction("🤚 摸摸头", self)
+        pet_action.triggered.connect(self._pet_head)
+        self._menu.addAction(pet_action)
 
         room_action = QAction("🎯 设置直播间号…", self)
         room_action.triggered.connect(self._ask_room)
@@ -240,3 +306,68 @@ class PetWindow(QWidget):
         if ok and self._on_set_room:
             self._room_id = number
             self._on_set_room(number)
+
+    # ---------- 桌宠互动 ----------
+
+    def _tick_anim(self) -> None:
+        """每帧：脸红消退 + 触发重绘（蹦跳期间保持脸红）。"""
+        if not self._bounce_timer.isActive() and self._excited > 0:
+            self._excited = max(0.0, self._excited - 0.045)
+        self.update()
+
+    def _on_click(self, is_double: bool) -> None:
+        """单击=戳一下；双击=蹦跳 + 卖萌气泡。"""
+        if is_double:
+            self.start_bounce()
+            self._excited = 1.0
+            self.show_bubble(random.choice(_CUTE_LINES), 4.0)
+        else:
+            self._excited = max(self._excited, 0.5)
+            if random.random() < 0.35:
+                self.show_bubble(random.choice(_CUTE_LINES), 3.5)
+
+    def _pet_head(self) -> None:
+        """右键「摸摸头」：脸红竖耳 + 轻蹦 + 撒娇气泡。"""
+        self._excited = 1.0
+        self.start_bounce(small=True)
+        self.show_bubble(random.choice(_PET_LINES), 4.0)
+
+    def start_bounce(self, small: bool = False) -> None:
+        """从当前位置开始蹦跳动画（窗口整体做垂直正弦跳跃）。"""
+        self._base_pos = self.pos()
+        self._bounce_t = 0.0
+        self._bounce_duration = 0.7 if small else 0.9
+        self._bounce_height = 30.0 if small else 62.0
+        self._excited = max(self._excited, 0.8 if small else 1.0)
+        self._bounce_timer.start()
+
+    def _tick_bounce(self) -> None:
+        """蹦跳动画帧：主跳（前 60%）+ 落地小弹（后 40%），结束后归位。"""
+        self._bounce_t += 0.016
+        if self._bounce_t >= self._bounce_duration:
+            self._bounce_timer.stop()
+            self.move(self._base_pos)
+            self.update()
+            return
+        p = self._bounce_t / self._bounce_duration
+        if p < 0.6:
+            q = p / 0.6
+            h = self._bounce_height * 1.2 * math.sin(q * math.pi)
+        else:
+            q = (p - 0.6) / 0.4
+            h = self._bounce_height * 0.25 * math.sin(q * math.pi)
+        self.move(self._base_pos.x(), int(self._base_pos.y() - h))
+        self.update()
+
+    def _rearm_idle(self) -> None:
+        """重排空闲动作定时器（20~40s 随机，防规律感）。"""
+        self._idle_timer.start(random.randint(20_000, 40_000))
+
+    def _idle_action(self) -> None:
+        """空闲随机小动作：没人在戳时自己蹦一下或冒个泡。"""
+        if not self._bubble.isHidden() or random.random() < 0.5:
+            self.start_bounce(small=True)
+        else:
+            self._excited = max(self._excited, 0.7)
+            self.show_bubble(random.choice(_IDLE_LINES), 4.0)
+        self._rearm_idle()

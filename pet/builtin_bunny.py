@@ -51,9 +51,22 @@ def _draw_round_ear(
     painter.drawEllipse(QPointF(cx, cy), r * 0.52, r * 0.52)
 
 
-def draw_bunny(painter: QPainter, rect: QRect, talking: bool, t_ms: int) -> None:
-    """在 rect 内绘制当前帧的圆耳兔头。t_ms 为动画时间（毫秒）。"""
+def draw_bunny(
+    painter: QPainter,
+    rect: QRect,
+    talking: bool,
+    t_ms: int,
+    face_scale: float = 1.0,
+    excited: float = 0.0,
+) -> None:
+    """在 rect 内绘制当前帧的圆耳兔头。t_ms 为动画时间（毫秒）。
+
+    face_scale: 头缩小比例（0.6~1.0），五官大小不变（Q版大头小脸萌感）；
+    excited: 兴奋程度 0~1（被戳/摸头时脸红加深、耳朵竖起）。
+    """
     t = t_ms / 1000.0
+    face_scale = max(0.5, min(face_scale, 1.0))
+    excited = max(0.0, min(excited, 1.0))
     painter.save()
     painter.setRenderHint(QPainter.Antialiasing, True)
 
@@ -70,18 +83,24 @@ def draw_bunny(painter: QPainter, rect: QRect, talking: bool, t_ms: int) -> None
     blink = 0.08 if (t % 3.5) < 0.15 else 1.0                # 眨眼
     mouth_open = (math.sin(t * 2 * math.pi / 0.28) + 1) / 2 if talking else 0.0
     ear_lift = 7.0 if talking else 0.0                       # 说话竖耳
+    ear_lift += 6.0 * excited                                # 被戳/摸头时耳朵竖起
 
-    # ---- 圆耳朵（头后方） ----
-    _draw_round_ear(painter, 72, 62 + breathe * 0.4, 27, ear_lift + ear_bob)
-    _draw_round_ear(painter, 148, 62 + breathe * 0.4, 27, ear_lift - ear_bob)
+    # ---- 头几何（中心固定 110,148；脸缩小则头椭圆变小，五官不变） ----
+    hw, hh = 80.0 * face_scale, 78.0 * face_scale           # 头半宽/半高
+    head_x, head_y = 110 - hw, 148 - hh + breathe * 0.6
+
+    # ---- 圆耳朵（跟随头沿） ----
+    ear_y = head_y - 8                                       # 耳朵在头上沿
+    _draw_round_ear(painter, 110 - 38 * face_scale, ear_y + breathe * 0.4, 27, ear_lift + ear_bob)
+    _draw_round_ear(painter, 110 + 38 * face_scale, ear_y + breathe * 0.4, 27, ear_lift - ear_bob)
 
     # ---- 兔头（大圆） ----
-    head = QRectF(30, 70 + breathe * 0.6, 160, 156)
+    head = QRectF(head_x, head_y, hw * 2, hh * 2)
     painter.setBrush(QBrush(FUR))
     painter.setPen(_pen())
     painter.drawEllipse(head)
 
-    # ---- 眼睛（大眼双高光） ----
+    # ---- 眼睛（大眼双高光，大小不变） ----
     eye_y = 128 + breathe * 0.4
     for ex in (85, 135):
         painter.setBrush(QBrush(EYE))
@@ -93,7 +112,7 @@ def draw_bunny(painter: QPainter, rect: QRect, talking: bool, t_ms: int) -> None
             painter.drawEllipse(QPointF(ex + 6, eye_y + 5), 2.5, 2.5)
     painter.setPen(_pen())
 
-    # ---- 小鼻头（心形） ----
+    # ---- 小鼻头（心形，不变） ----
     ny = 152 + breathe * 0.3
     nose = QPainterPath(QPointF(110, ny + 5))
     nose.quadTo(QPointF(103, ny - 4), QPointF(110, ny - 1))
@@ -103,7 +122,7 @@ def draw_bunny(painter: QPainter, rect: QRect, talking: bool, t_ms: int) -> None
     painter.drawPath(nose)
     painter.setPen(_pen(2.5))
 
-    # ---- 三瓣嘴 / 说话张嘴 ----
+    # ---- 三瓣嘴 / 说话张嘴（不变） ----
     my = ny + 6
     if mouth_open > 0.15:
         painter.setBrush(QBrush(QColor("#6E4A3A")))
@@ -116,11 +135,13 @@ def draw_bunny(painter: QPainter, rect: QRect, talking: bool, t_ms: int) -> None
         painter.drawPath(mw)
     painter.setPen(_pen(2.5))
 
-    # ---- 腮红（说话时更明显） ----
-    blush_r = 14 + 3 * mouth_open
-    painter.setBrush(QBrush(BLUSH))
+    # ---- 腮红（大小不变，位置跟头沿内收；被戳/摸头时更红更圆） ----
+    blush_r = 14 + 3 * mouth_open + 2.5 * excited
+    blush_alpha = 120 + 60 * excited
+    blush = QColor(248, 170, 188, min(blush_alpha, 220))
+    painter.setBrush(QBrush(blush))
     painter.setPen(Qt.PenStyle.NoPen)
-    painter.drawEllipse(QPointF(58, ny + 10), blush_r, blush_r * 0.62)
-    painter.drawEllipse(QPointF(162, ny + 10), blush_r, blush_r * 0.62)
+    painter.drawEllipse(QPointF(110 - 52 * face_scale, ny + 10), blush_r, blush_r * 0.62)
+    painter.drawEllipse(QPointF(110 + 52 * face_scale, ny + 10), blush_r, blush_r * 0.62)
 
     painter.restore()
