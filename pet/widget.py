@@ -360,8 +360,8 @@ class PetWindow(QWidget):
         self.update()
 
     def _rearm_idle(self) -> None:
-        """重排空闲动作定时器（20~40s 随机，防规律感）。"""
-        self._idle_timer.start(random.randint(20_000, 40_000))
+        """重排空闲动作定时器（45~90s 随机，防规律感）。"""
+        self._idle_timer.start(random.randint(45_000, 90_000))
 
     def _idle_action(self) -> None:
         """空闲随机小动作：没人在戳时自己蹦一下或冒个泡。"""
