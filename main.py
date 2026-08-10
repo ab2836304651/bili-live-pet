@@ -65,7 +65,7 @@ FALLBACK_CONFIG = {
     "ai": {
         "api_key": "",
         "base_url": "https://api.deepseek.com",
-        "model": "deepseek-chat",
+        "model": "deepseek-v4-flash",
         "temperature": 0.9,
         "max_tokens": 120,
         "reply_mode": "all",

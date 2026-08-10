@@ -106,7 +106,7 @@ copy config\config.example.yaml config\config.yaml   # 复制配置模板并填�
 | `danmaku.backend` | `open_live` / `community`（默认；community 需 SESSDATA 登录） |
 | `danmaku.community.sessdata` | B站登录态（设置面板扫码自动写入，约 30 天有效） |
 | `ai.api_key` | DeepSeek API Key（已预填你的 Key，实测可用） |
-| `ai.model` | `deepseek-chat` / `deepseek-v4-flash` / `deepseek-v4-pro` |
+| `ai.model` | `deepseek-v4-flash`（默认）/ `deepseek-v4-pro` |
 | `ai.reply_mode` | `all` / `trigger` / `probability` |
 | `ai.trigger_words` | trigger 模式下的触发词 |
 | `ai.cooldown_seconds` | 回复冷却（防刷屏） |

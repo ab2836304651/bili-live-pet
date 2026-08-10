@@ -152,6 +152,7 @@ class PetController(QObject):
         if not self._responder:
             return
         fake = LiveEvent(type=LiveEventType.DANMAKU, user_name="主播", content="和小猫打个招呼吧~")
+        fake._test = True  # 测试触发标记：失败时在气泡显示错误原因
         self._log("[测试] 请求 AI 回复…")
         threading.Thread(target=self._do_reply, args=(fake,), daemon=True).start()
 
@@ -177,12 +178,24 @@ class PetController(QObject):
             self._log("（收到但按策略未回复：冷却中或触发条件不满足）")
 
     def _do_reply(self, event: LiveEvent) -> None:
-        """后台线程：调用 AI，成功后把回复发回 GUI 线程。"""
+        """后台线程：调用 AI，成功后把回复发回 GUI 线程。
+
+        AI 失败不再静默：状态写日志；测试触发时把错误原因显示到气泡，
+        让主播能立刻看到"key 无效 / 没额度 / 模型名错"这类问题。
+        """
         if not self._responder:
             return
         with self._history_lock:
             snapshot = list(self._history)
-        text = self._responder.reply(event, snapshot)
+        try:
+            text = self._responder.reply(event, snapshot)
+        except Exception as exc:
+            err = f"AI 调用失败: {exc}"
+            self._log(err)
+            self.status_signal.emit(err)
+            if getattr(event, "_test", False):
+                self.reply_signal.emit((event, f"⚠️ {err}"))
+            return
         if text:
             self._append_history("assistant", text)
             self.reply_signal.emit((event, text))

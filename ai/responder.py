@@ -43,7 +43,7 @@ class Responder:
         self._client = ChatClient(
             api_key=self._cfg.get("api_key", ""),
             base_url=self._cfg.get("base_url", "https://api.deepseek.com"),
-            model=self._cfg.get("model", "deepseek-chat"),
+            model=self._cfg.get("model", "deepseek-v4-flash"),
         )
         self._mode = self._cfg.get("reply_mode", "all")          # all/trigger/probability
         self._triggers = [w.lower() for w in self._cfg.get("trigger_words", [])]
@@ -141,15 +141,15 @@ class Responder:
         return tpl.format(name=event.user_name or "主人")
 
     def reply(self, event: LiveEvent, history: List[dict]) -> Optional[str]:
-        """同步调用 AI 生成回复；进场欢迎走模板（秒出、不耗额度）。"""
+        """同步调用 AI 生成回复；进场欢迎走模板（秒出、不耗额度）。
+
+        AI 调用失败直接抛异常，由上层（controller）捕获后展示原因，
+        避免"静默无气泡"让用户以为没反应。
+        """
         if event.type == LiveEventType.ENTER:
             return self._template_welcome(event)
         messages = self.build_messages(event, history)
-        try:
-            text = self._client.chat(messages, self._temperature, self._max_tokens)
-        except Exception as exc:
-            self._log(f"[AI] 调用失败: {exc}")
-            return None
+        text = self._client.chat(messages, self._temperature, self._max_tokens)
         with self._lock:
             self._last_reply_at = time.monotonic()
         return text

@@ -122,7 +122,7 @@ class SettingsDialog(QDialog):
         self._api_edit.setPlaceholderText("DeepSeek 官方 API Key（sk- 开头）")
         self._base_edit = QLineEdit(ai.get("base_url") or "https://api.deepseek.com", self)
         self._model_edit = QLineEdit(ai.get("model") or "deepseek-chat", self)
-        self._model_edit.setPlaceholderText("deepseek-chat / deepseek-v4-flash / deepseek-v4-pro")
+        self._model_edit.setPlaceholderText("deepseek-v4-flash / deepseek-v4-pro")
         self._mode_combo = QComboBox(self)
         self._mode_combo.addItems(["all", "trigger", "probability"])
         self._mode_combo.setCurrentText(ai.get("reply_mode") or "all")

@@ -1,8 +1,8 @@
 """OpenAI 兼容的聊天客户端（已实测 DeepSeek 官方 API 可用）。
 
 - base_url 默认 https://api.deepseek.com
-- 模型默认 deepseek-chat（DeepSeek 官方别名，2026-08 实测可用；
-  也可填 deepseek-v4-flash / deepseek-v4-pro 等实际模型 ID）
+- 模型默认 deepseek-v4-flash（2026-08 官方模型列表实测可用；
+  deepseek-chat / deepseek-reasoner 是隐藏别名，能用但不出现在 /models）
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ class ChatClient:
         self,
         api_key: str,
         base_url: str = "https://api.deepseek.com",
-        model: str = "deepseek-chat",
+        model: str = "deepseek-v4-flash",
         timeout: float = 30.0,
     ):
         self.api_key = api_key.strip()
