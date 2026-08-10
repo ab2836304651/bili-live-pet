@@ -199,6 +199,10 @@ class PetController(QObject):
         if text:
             self._append_history("assistant", text)
             self.reply_signal.emit((event, text))
+        elif getattr(event, "_test", False):
+            # 空回复：DeepSeek 偶发返回空 content，同样要提示，避免"没反应"
+            self._log("[AI] 返回空回复（接口通但内容为空）")
+            self.reply_signal.emit((event, "⚠️ AI 返回了空回复：接口通了但没内容。\n多为账户没充值/余额用完，或模型暂时抽风，可稍后再试。"))
 
     # ---------- 历史 ----------
 
