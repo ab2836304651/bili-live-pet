@@ -53,6 +53,9 @@ class Responder:
         self._max_tokens = int(self._cfg.get("max_tokens", 120))
         self._last_reply_at = 0.0
         self._lock = threading.Lock()
+        # 按事件类型分冷却槽：礼物/SC/大航海不抢占弹幕的冷却，
+        # 否则礼物多时弹幕全被拦（"投喂能回、弹幕回复低"的根因）
+        self._last_danmaku_at = 0.0
         self._last_welcome_at = 0.0          # 全局欢迎冷却
         self._welcomed: dict = {}            # {user_id: 上次欢迎时间}，防止同一人反复进出刷屏
         self._enter_cooldown = float(self._cfg.get("enter_cooldown_seconds", 20))
@@ -98,11 +101,17 @@ class Responder:
         elif event.type == LiveEventType.LIKE:
             return False  # 点赞默认不回，避免刷屏
 
-        with self._lock:
-            if time.monotonic() - self._last_reply_at < self._cooldown:
-                return False
-            # 通过检查即预占冷却槽：防止弹幕爆发时并发多个 AI 请求
-            self._last_reply_at = time.monotonic()
+        # 弹幕用独立冷却槽，避免被礼物/SC 抢占；其余事件共用冷却槽
+        if event.type == LiveEventType.DANMAKU:
+            with self._lock:
+                if time.monotonic() - self._last_danmaku_at < self._cooldown:
+                    return False
+                self._last_danmaku_at = time.monotonic()
+        else:
+            with self._lock:
+                if time.monotonic() - self._last_reply_at < self._cooldown:
+                    return False
+                self._last_reply_at = time.monotonic()
         return True
 
     # ---------- 对话构建 ----------
